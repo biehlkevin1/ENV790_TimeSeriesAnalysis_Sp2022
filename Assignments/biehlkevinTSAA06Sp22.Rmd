@@ -1,0 +1,194 @@
+---
+title: "ENV 790.30 - Time Series Analysis for Energy Data | Spring 2021"
+subtitle: "Assignment 6 - Due date 03/16/22"
+author: "Kevin Biehl"
+output: pdf_document
+geometry: margin=2.54cm
+header-includes:
+  - \usepackage{enumerate}
+  - \usepackage{enumitem}
+---
+  
+## Directions
+  
+  You should open the .rmd file corresponding to this assignment on RStudio. The file is available on our class repository on Github. And to do so you will need to fork our repository and link it to your RStudio.  
+
+Once you have the project open the first thing you will do is change "Student Name" on line 3 with your name. 
+Then you will start working through the assignment by  **creating code and output** that answer each question. Be sure to use this assignment document. Your report should contain the answer to each question and any plots/tables you obtained (when applicable).
+
+When you have completed the assignment, **Knit** the text and code into a single PDF file. Rename the pdf file such that it includes your first and last name (e.g., "LuanaLima_TSA_A06_Sp22.Rmd"). Submit this pdf using Sakai. 
+
+## Questions 
+
+This assignment has general questions about ARIMA Models. 
+
+Packages needed for this assignment: "forecast","tseries". Do not forget to load them before running your script, since they are NOT default packages.\\
+
+```{r}
+#Load/install required package here
+library(forecast)
+library(tseries)
+
+```
+
+
+## Q1
+Describe the important characteristics of the sample autocorrelation function (ACF) plot and the partial sample autocorrelation function (PACF) plot for the following models: 
+
+\begin{enumerate}[label=(\alph*)]
+
+\item AR(2)
+
+> Answer: AR(2) is an autoregressive series with with order p = 2, meaning the current value in the series is dependant upon two values previous to it. For AR models, the ACF will decay exponentially with increasing lags.  The PACF of an AR(2) will show large positive values at lag 1 and lag 2, and small values varying about zero for additional lags. This assumes there isn't a seasonal component, since AR(2), not SAR(2). 
+
+\item MA(1)
+
+> Answer: MA(1) is a moving average series with with order q = 1. The ACF will show a high, likely negative, value at lag = 1, and small values at additional lags. The PACF will show decay with increasing lags, but won't necessarily cut off at lag = 1.
+
+\end{enumerate}
+
+## Q2
+Recall that the non-seasonal ARIMA is described by three parameters ARIMA$(p,d,q)$ where $p$ is the order of the autoregressive component, $d$ is the number of times the series need to be differenced to obtain stationarity and $q$ is the order of the moving average component. If we don't need to difference the series, we don't need to specify the "I" part and we can use the short version, i.e., the ARMA$(p,q)$. Consider three models: ARMA(1,0), ARMA(0,1) and ARMA(1,1) with parameters $\phi=0.6$ and $\theta= 0.9$. The $\phi$ refers to the AR coefficient and the $\theta$ refers to the MA coefficient. Use R to generate $n=100$ observations from each of these three models
+
+```{r}
+set.seed(10)
+arma10 <- arima.sim(model = list(ar = 0.6), n = 100)  ## ARMA(1,0)
+plot.ts(arma10)
+
+
+arma01 <- arima.sim(model = list(ma = 0.9), n = 100)  ## ARMA(0,1)
+plot.ts(arma01)
+
+
+arma11 <- arima.sim(model = list(ar = 0.6, ma = 0.9), n = 100)  ## ARMA(1,1)
+plot.ts(arma11)
+
+
+```
+
+
+\begin{enumerate}[label=(\alph*)]
+
+\item Plot the sample ACF for each of these models in one window to facilitate comparison.  
+
+```{r}
+par(mfrow=c(1,3),mar = c(4,4,4,2) + .1)
+Acf(arma10,lag.max=40)
+Acf(arma01,lag.max=40)
+Acf(arma11,lag.max=40)
+
+```
+
+
+\item Plot the sample PACF for each of these models in one window to facilitate comparison.  
+
+```{r}
+par(mfrow=c(1,3),mar = c(4,4,4,2) + .1)
+Pacf(arma10,lag.max=40)
+Pacf(arma01,lag.max=40)
+Pacf(arma11,lag.max=40)
+
+
+```
+
+\item Look at the ACFs and PACFs. Imagine you had these plots for a data set and you were asked to identify the model, i.e., is it AR, MA or ARMA and the order of each component. Would you be identify them correctly? Explain your answer.
+
+> Answer: Yes, as long as I was asked with open notes and ample time to respond. The ACF and PACF or ARMA(1,0) and ARMA(0,1) exhibit expected behavior for autoregressive and moving average models, respectively. An autoregressive process will exhibit a decaying acf and a pacf with a dropoff at the order of the model, which in this case is p = 1. The moving average model model also exhibits expected behavior of decay in the pacf and a dropoff at its order, q = 1, in the acf. Comparing  the ARMA(1,1) acfto the standalone autoregressive and moving average acfs, its clear that the dropoff is more significant than a standard decay following lag = 1, indicating a MA process. However, after lag = 1, the acf appears to decay according to an AR process. This hints at an ARMA model. The pacf of the ARMA process confirms what the acf indicated by showing a similar dropoff following lag = 1 from the AR component, following by decay from the MA part.  
+
+\item Compare the ACF and PACF values R computed with the theoretical values you provided for the coefficients. Do they match? Explain your answer.
+```{r}
+arma(arma10, order = c(1, 0))
+arma(arma01, order = c(0, 1))
+arma(arma11, order = c(1, 1))
+```
+
+> Answer: ACF and PACF values are slightly higher than expected, but fall within a reasonable margin of error. This is likely a result of seeding with a value of 10. For AR(1), phi = .6, the ACF at early lags should match .6 raised to (n lags). Instead, it follows 0.6604 raised to (n lags).
+Theoretically, for MA(1), theta = .9, the acf  at lag = 1 should be rho = 0.62. Beyond lag = 1, the acf for arma 01 shows nonsignificant values past lag = 1 and a slightly slightly higher value at lag = 1.
+
+
+\item Increase number of observations to $n=1000$ and repeat parts (a)-(d).
+
+```{r}
+set.seed(10)
+arma_n1000_10 <- arima.sim(model = list(ar = 0.6), n = 1000)  ## ARMA(1,0)
+plot.ts(arma_n1000_10)
+
+
+arma_n1000_01 <- arima.sim(model = list(ma = 0.9), n = 1000)  ## ARMA(0,1)
+plot.ts(arma_n1000_01)
+
+
+arma_n1000_11 <- arima.sim(model = list(ar = 0.6, ma = 0.9), n = 1000)  ## ARMA(1,1)
+plot.ts(arma_n1000_11)
+
+par(mfrow=c(1,3),mar = c(4,4,4,2) + .1)
+Acf(arma_n1000_10,lag.max=40)
+Acf(arma_n1000_01,lag.max=40)
+Acf(arma_n1000_11,lag.max=40)
+
+
+par(mfrow=c(1,3),mar = c(4,4,4,2) + .1)
+Pacf(arma_n1000_10,lag.max=40)
+Pacf(arma_n1000_01,lag.max=40)
+Pacf(arma_n1000_11,lag.max=40)
+
+```
+\item Look at the ACFs and PACFs. Imagine you had these plots for a data set and you were asked to identify the model, i.e., is it AR, MA or ARMA and the order of each component. Would you be identify them correctly? Explain your answer.
+
+> Answer: Yes. With additional observations, the ACF and PACF of ARMA(1,0) and ARMA(0,1) even more clearly exhibit expected behavior for autoregressive and moving average models, respectively. The AR process exhibits a decaying acf and a pacf with a dropoff at the order of the model, p = 1. The moving average model model also exhibits expected behavior of decay in the pacf and a dropoff in the acf at its order, q = 1. Comparing  the ARMA(1,1) acf to the standalone autoregressive and moving average acfs, its clear that the dropoff is more significant than a standard decay following lag = 1, indicating a MA process. After lag = 1, the acf appears to decay according to an AR process. This hints at an ARMA model. The pacf of the ARMA process confirms what the acf indicated by showing a similar dropoff following lag = 1 from the AR component, following by decay from the MA part.
+
+\item Compare the ACF and PACF values R computed with the theoretical values you provided for the coefficients. Do they match? Explain your answer.
+```{r}
+arma(arma_n1000_10, order = c(1, 0))
+arma(arma_n1000_01, order = c(0, 1))
+arma(arma_n1000_11, order = c(1, 1))
+```
+
+> Answer: The ACF and PACF values trend towards the expected values of the supplied coefficients with additional observations. That is, the observed and modeled phi and theta are closer to each other with 1000 observations than with 100 observations. Otherwise, the results are identical to that of 100 observations - a slight overestimate of each coeffecient.
+
+\end{enumerate}
+
+## Q3
+
+Consider the ARIMA model $y_t=0.7*y_{t-1}-0.25*y_{t-12}+a_t-0.1*a_{t-1}$
+
+\begin{enumerate}[label=(\alph*)]
+
+\item Identify the model using the notation ARIMA$(p,d,q)(P,D,Q)_ s$, i.e., identify the integers $p,d,q,P,D,Q,s$ (if possible) from the equation.
+
+> Answer: 
+p = 1
+d = 0 (as long as yt = Yt)
+q = 1
+P = 1
+D = 0 (as long as yt = Yt)
+Q = 0
+s = 12
+
+\item Also from the equation what are the values of the parameters, i.e., model coefficients. 
+
+> Answer:
+phi1 = 0.7
+phi12 = 0.25
+theta1 = 0.1
+
+\end{enumerate}
+## Q4
+
+Plot the ACF and PACF of a seasonal ARIMA$(0, 1)\times(1, 0)_{12}$ model with $\phi =0 .8$ and $\theta = 0.5$ using R. The $12$ after the bracket tells you that $s=12$, i.e., the seasonal lag is 12, suggesting monthly data whose behavior is repeated every 12 months. You can generate as many observations as you like. Note the Integrated part was omitted. It means the series do not need differencing, therefore $d=D=0$. Plot ACF and PACF for the simulated data. Comment if the plots are well representing the model you simulated, i.e., would you be able to identify the order of both non-seasonal and seasonal components from the plots? Explain.
+
+```{r}
+arima_001_100_12 = Arima(ts(rnorm(100),frequency = 12), order = c(0,0,1), seasonal = c(1,0,0), include.mean = FALSE, fixed = c(theta = 0.8, Phi = 0.5))
+
+Simarima_001_100_12 <- simulate(arima_001_100_12, nsim=1000)
+
+par(mfrow=c(1,3),mar = c(4,4,4,2) + .1)
+ts.plot(Simarima_001_100_12)
+Acf(Simarima_001_100_12,lag.max=60)
+Pacf(Simarima_001_100_12,lag.max=60)
+
+
+
+
+```
+> Answer: The MA process of the non-seasonal component is shown through the steep dropoff in the ACF at lag = 2 and the PACF decay through the first several lags. The Seasonal AR process is evident through the ACF decay at lags divisible by 12 and its order is shown through a PACF that drops to near zero after a single multiple of lag = 12. That is, lag = 24, 36, 48 etc. all show insignificant PACF values, but lag = 12 shows a significant spike in PACF.
